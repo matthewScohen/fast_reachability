@@ -1,2 +1,2 @@
-clean:
+all:
 	g++ -o main main.cpp Node.cpp Graph.cpp solver.cpp

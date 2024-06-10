@@ -8,15 +8,18 @@ class Graph
 {
 private:
     int size;
+    std::vector<int> finalStates;
     std::vector<Node> nodes;
 public:
-    Graph(int size);
-    Graph(std::string filepath);
-    void save(std::string filepath);
+    Graph(int size, std::vector<int> finalStates);
+    Graph(const std::string& filepath);
+    int save(const std::string& filepath);
 
     Node getNode(int node);
     void addNode(int node, int owner);
     void addEdge(int origin, int destination);
+    void addFinalState(int node);
+    std::vector<int> getFinalStates();
     int getSize();
 };
 
