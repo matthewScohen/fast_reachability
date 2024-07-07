@@ -11,6 +11,12 @@ Graph::Graph(int size, std::vector<int> finalStates)
     this->size = size;
 }
 
+Graph::Graph() {
+    this->nodes = std::vector<Node>();
+    this->finalStates = std::vector<int>();
+    this->size = 0;
+}
+
 Graph::Graph(const std::string& filepath)
 {
     std::ifstream inFile(filepath);
@@ -129,3 +135,8 @@ int Graph::getSize()
 {
     return this->size;
 }
+
+void Graph::setSize(int size) {
+    this->nodes = std::vector<Node>(size);
+}
+

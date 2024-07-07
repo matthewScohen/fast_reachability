@@ -1,6 +1,6 @@
 #include <vector>
 #include "solver.h"
-#include "Graph.h"
+#include "Graph/Graph.h"
 
 std::vector<int> attr(Graph& graph, std::vector<int> finalStates)
 {
@@ -10,8 +10,8 @@ std::vector<int> attr(Graph& graph, std::vector<int> finalStates)
 std::vector<int> attr(Graph& graph, std::vector<int> finalStates, int reachabilityPlayer)
 {
     // reachabilityPlayer is the player with a reachability objective for the game
-    // State map tracks the number of edges that must be checked to add a state to the attractor
-    // If 0 edges need to be checked it can be added to the attractor
+    // State map tracks the number of edges that must be eliminated to add a state to the attractor
+    // If 0 edges need to be eliminated it can be added to the attractor
     std::vector<int> stateMap(graph.getSize(), -1);
     std::vector<int> attractor;
     // Set initial final states to 0 in map
@@ -36,18 +36,19 @@ std::vector<int> attr(Graph& graph, std::vector<int> finalStates, int reachabili
                 }
                 else
                 {
-                    // The number of edges that must be checked from s to add it to the attractor are all of its
-                    // outgoing edges except the one going to the state we are currently visiting
+                    // The number of edges that must be eliminated from s to add it to the attractor are all of its
+                    // outgoing edges, we subtract 1 to eliminate the current state
                     stateMap[s] = graph.getNode(s).out_neighbors.size() - 1;
                     if(stateMap[s] == 0)
                         attractor.push_back(s);
                 }
             }
-            // if the state belongs to the safety player and has edges left to be checked
+            // if the state belongs to the safety player and has edges left to be eliminated
             else if(graph.getNode(s).owner != reachabilityPlayer && stateMap[s] > 0)
             {
-                // mark the edge as checked and if it was the last edge add the state to the attractor
+                // eliminate the edge
                 stateMap[s]--;
+                // if there are no more edges to eliminate add the state to the attractor
                 if(stateMap[s] == 0)
                     attractor.push_back(s);
             }

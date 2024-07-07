@@ -5,7 +5,6 @@ Node::Node()
     this->owner = -1;
 }
 
-Node::Node(int owner)
-{
+Node::Node(int owner) {
     this->owner = owner;
 }

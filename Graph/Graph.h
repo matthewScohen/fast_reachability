@@ -11,10 +11,12 @@ private:
     std::vector<int> finalStates;
     std::vector<Node> nodes;
 public:
+    Graph();
     Graph(int size, std::vector<int> finalStates);
     Graph(const std::string& filepath);
     int save(const std::string& filepath);
 
+    void setSize(int size);
     Node getNode(int node);
     void addNode(int node, int owner);
     void addEdge(int origin, int destination);

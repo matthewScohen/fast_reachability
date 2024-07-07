@@ -1,7 +1,7 @@
 #include <chrono>
 #include <iostream>
 #include <random>
-#include "Graph.h"
+#include "Graph/Graph.h"
 #include "solver.h"
 
 int generateRandomNumber(int max) {
