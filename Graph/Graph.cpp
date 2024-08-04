@@ -54,11 +54,13 @@ Graph::Graph(const std::string& filepath)
         int nodeNum = std::stoi(tokens[0]);
         int owner = std::stoi(tokens[1]);
 
-        this->addNode(nodeNum, owner);
+        // TODO adding state_info to the node breaks this
+//        this->addNode(nodeNum, owner);
         for (std::size_t i = 2; i < tokens.size(); ++i)
         {
             int out_neighbor = std::stoi(tokens[i]);
-            addEdge(nodeNum, out_neighbor);
+            // TODO add action to nodes breaks this
+//            addEdge(nodeNum, out_neighbor);
         }
     }
     inFile.close();
@@ -110,15 +112,17 @@ Node Graph::getNode(int node)
     return this->nodes[node];
 }
 
-void Graph::addNode(int node, int owner)
+void Graph::addNode(int node, int owner, Multiagent_State state_info)
 {
     this->nodes[node].owner = owner;
+    this->nodes[node].state_info = std::move(state_info);
 }
 
-void Graph::addEdge(int from, int to)
+void Graph::addEdge(int from, int to, std::string action)
 {
     this->nodes[from].out_neighbors.push_back(to);
     this->nodes[to].in_neighbors.push_back(from);
+    this->nodes[to].action_map[from] = std::move(action);
 }
 
 void Graph::addFinalState(int node)
@@ -138,5 +142,6 @@ int Graph::getSize()
 
 void Graph::setSize(int size) {
     this->nodes = std::vector<Node>(size);
+    this->size = size;
 }
 

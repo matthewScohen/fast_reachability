@@ -1,14 +1,17 @@
 #include <vector>
+#include <fstream>
+#include <iostream>
 #include "solver.h"
 #include "Graph/Graph.h"
 
-std::vector<int> attr(Graph& graph, std::vector<int> finalStates)
+std::tuple<std::vector<int>, std::map<std::string, std::string>> attr(Graph& graph, const std::vector<int>& finalStates)
 {
     return attr(graph, finalStates, 1);
 }
 
-std::vector<int> attr(Graph& graph, std::vector<int> finalStates, int reachabilityPlayer)
+std::tuple<std::vector<int>, std::map<std::string, std::string>> attr(Graph& graph, const std::vector<int>& finalStates, int reachabilityPlayer)
 {
+    std::map<std::string, std::string> strategy;
     // reachabilityPlayer is the player with a reachability objective for the game
     // State map tracks the number of edges that must be eliminated to add a state to the attractor
     // If 0 edges need to be eliminated it can be added to the attractor
@@ -33,6 +36,8 @@ std::vector<int> attr(Graph& graph, std::vector<int> finalStates, int reachabili
                 {
                     attractor.push_back(s);
                     stateMap[s] = 0;
+                    // Store the action that goes from s to attractor[index] as the strategy for the reachability player at state s
+                     strategy[graph.getNode(s).state_info.get_string_representation()] = graph.getNode(attractor[index]).action_map[s];
                 }
                 else
                 {
@@ -55,5 +60,5 @@ std::vector<int> attr(Graph& graph, std::vector<int> finalStates, int reachabili
         }
         index++;
     }
-    return attractor;
+    return std::make_tuple(attractor, strategy);
 }

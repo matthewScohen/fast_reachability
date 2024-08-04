@@ -2,7 +2,7 @@
 #include <functional>
 #include "Multiagent_Env.h"
 #include "../../Graph/Graph.h"
-const int NUM_ACTIONS = 5;
+const int NUM_ACTIONS = 4;
 
 Multiagent_Env::Multiagent_Env(int width, int height, int num_agents_t1, int num_agents_t2, std::vector<std::tuple<int, int>> winning_cells) {
     this->width = width;
@@ -12,11 +12,40 @@ Multiagent_Env::Multiagent_Env(int width, int height, int num_agents_t1, int num
     this->num_agents_t2 = num_agents_t2;
 
     this->node_2_state = std::vector<Multiagent_State>();
-    this->state_2_node = std::map<Multiagent_State, int>();
+    this->state_2_node = std::unordered_map<std::string, int>();
 
-    this->final_states = std::vector<Multiagent_State>(); // final_states is populated by generate_states()
+    this->final_states_p1 = std::vector<Multiagent_State>(); // final_states is populated by generate_states()
+    this->final_states_p2 = std::vector<Multiagent_State>();
+    this->p2_final_state_indexes = std::vector<int>();
     this->states = this->generate_states();
     this->game_graph = this->generate_game_graph();
+}
+
+bool Multiagent_Env::is_final_state_p1(Multiagent_State state) {
+    for(const auto& pose : state.team1_poses)
+    {
+        // If any agent from team1 reaches a winning cell it is a final state
+        int x = std::get<0>(pose);
+        int y = std::get<1>(pose);
+        for(const auto& cell : this->winning_cells)
+            if(std::make_tuple(x, y) == cell)
+                return true;
+    }
+    return false;
+}
+
+bool Multiagent_Env::is_final_state_p2(Multiagent_State state) {
+    for(auto pose1 : state.team1_poses)
+        for(auto pose2 : state.team2_poses)
+        {
+            int x1 = std::get<0>(pose1);
+            int y1 = std::get<1>(pose1);
+            int x2 = std::get<0>(pose2);
+            int y2 = std::get<1>(pose2);
+            if(x1 == x2 && y1 == y2)
+                return true;
+        }
+    return false;
 }
 
 void Multiagent_Env::generate_poses(int num_agents, std::vector<std::vector<std::tuple<int, int, int>>> &all_poses) {
@@ -71,23 +100,34 @@ std::vector<Multiagent_State> Multiagent_Env::generate_states() {
                 state.team2_poses = t2_pose;
                 state.turn = turn;
                 all_states.push_back(state);
-                // If any agent from team1 reaches a winning cell it is a final state
+                // If any agent from team1 reaches a winning cell it is a p1 final state
                 for(const auto& pose : state.team1_poses)
                 {
                     int x = std::get<0>(pose);
                     int y = std::get<1>(pose);
                     for(const auto& cell : this->winning_cells)
                         if(std::make_tuple(x, y) == cell)
-                            this->final_states.push_back(state);
+                            this->final_states_p1.push_back(state);
                 }
             }
         }
     }
+    std::cout << "states generated" << std::endl;
     return all_states;
 }
 
 Multiagent_State Multiagent_Env::get_transition(Multiagent_State state, std::vector<Action> actions) {
     // If any agent from team1 is in the same cell as an agent from team2 then it is a sink state
+    for(auto t1_pose : state.team1_poses)
+        for(auto t2_pose : state.team2_poses)
+        {
+            int x1 = std::get<0>(t1_pose);
+            int y1 = std::get<1>(t1_pose);
+            int x2 = std::get<0>(t2_pose);
+            int y2 = std::get<1>(t2_pose);
+            if(x1 == x2 && y1 == y2)
+                return state;
+        }
     Multiagent_State dest_state = Multiagent_State();
     dest_state.turn = 3 - state.turn; // dest_state turn is 1 or 2, whichever is not the current state.turn
 
@@ -163,6 +203,13 @@ Multiagent_State Multiagent_Env::get_transition(Multiagent_State state, std::vec
     return dest_state;
 }
 
+std::string team_action_to_string(std::vector<Action> team_action) {
+    std::string action_string = "";
+    for(auto action : team_action)
+        action_string += std::to_string(action);
+    return action_string;
+}
+
 Graph Multiagent_Env::generate_game_graph() {
     // Generate action combos
     std::vector<std::vector<Action>> t1_action_combos;
@@ -174,31 +221,40 @@ Graph Multiagent_Env::generate_game_graph() {
     auto g = Graph();
     g.setSize(this->states.size());
     int n = 0;
-    // For each state add a node
-    for(int i = 0; i < this->states.size(); i++)
+    // Add all nodes to graph
+    for(auto state : this->states)
     {
-        g.addNode(n, this->states[i].turn);
-        this->state_2_node[this->states[n]] = n;
+        g.addNode(n, state.turn, state);
+        this->state_2_node[state.get_string_representation()] = n;
+        if(is_final_state_p1(state))
+            g.addFinalState(n);
+        if(is_final_state_p2(state))
+            this->p2_final_state_indexes.push_back(n);
         n++;
     }
-    // For each state and each action add an edge from state to get_transition(state, action)
-    for(int i = 0; i < this->states.size(); i++)
+    // For each node in the graph and each action add an edge from node.state_info to get_transition(node.state_info, action)
+    for(int i = 0; i < g.nodes.size(); i++)
     {
-        if(this->states[i].turn == 1)
+        if(g.nodes[i].state_info.turn == 1)
         {
             for (const auto& team_action : t1_action_combos)
             {
-                auto dest_state = this->get_transition(this->states[i], team_action);
-                // TODO Find more efficient way to get index of dest_state
-                for(int j = 0; j < this->states.size(); j++)
-                {
-                    if(this->states[j] == dest_state)
-                        g.addEdge(i, j);
-                }
+                auto dest_state = this->get_transition(g.nodes[i].state_info, team_action);
+                int dest_node = this->state_2_node[dest_state.get_string_representation()];
+                g.addEdge(i, dest_node, team_action_to_string(team_action));
+            }
+        }
+        if(g.nodes[i].state_info.turn == 2)
+        {
+            for (const auto& team_action : t2_action_combos)
+            {
+                auto dest_state = this->get_transition(g.nodes[i].state_info, team_action);
+                int dest_node = this->state_2_node[dest_state.get_string_representation()];
+                g.addEdge(i, dest_node, team_action_to_string(team_action));
             }
         }
     }
     // Iterate over all possible combinations of action for every player on team "turn"
-
+    std::cout << "graph generated" << std::endl;
     return g;
 }

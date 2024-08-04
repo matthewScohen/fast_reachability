@@ -8,6 +8,7 @@ class Multiagent_State {
 public:
     Multiagent_State(std::vector<std::tuple<int, int, int>> team1_poses, std::vector<std::tuple<int, int, int>> team2_poses, int turn);
     Multiagent_State();
+    std::string get_string_representation();
     bool operator==(const Multiagent_State& other) const;
     bool operator<(const Multiagent_State& other) const;
     // Turn is an int indicating the team who takes an action at this state
